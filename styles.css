@@ -29,7 +29,7 @@ body::before {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 h1 {
