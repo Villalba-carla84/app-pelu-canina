@@ -4,9 +4,8 @@ const appRoot = document.getElementById("appRoot");
 const loginForm = document.getElementById("loginForm");
 const loginUserInput = document.getElementById("loginUser");
 const loginPasswordInput = document.getElementById("loginPassword");
+const showPasswordInput = document.getElementById("showPassword");
 const loginError = document.getElementById("loginError");
-const installButton = document.getElementById("installButton");
-const iosInstallHint = document.getElementById("iosInstallHint");
 const logoutButton = document.getElementById("logoutButton");
 const fotoInput = document.getElementById("foto");
 const nombreInput = document.getElementById("nombre");
@@ -60,7 +59,6 @@ const AUTH_STORAGE_KEY = "narices_frias_token";
 
 let currentAppointments = [];
 let authToken = localStorage.getItem(AUTH_STORAGE_KEY) || "";
-let deferredInstallPrompt = null;
 
 function formatDate(isoDate) {
   if (!isoDate) return "-";
@@ -123,39 +121,6 @@ function setAuthToken(token = "") {
 function setLoggedInState(isLoggedIn) {
   loginScreen.classList.toggle("hidden", isLoggedIn);
   appRoot.classList.toggle("hidden", !isLoggedIn);
-  if (!isLoggedIn) {
-    installButton.classList.add("hidden");
-    iosInstallHint.classList.add("hidden");
-  }
-}
-
-function isIos() {
-  return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-}
-
-function isStandaloneMode() {
-  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-}
-
-function refreshInstallUi() {
-  if (appRoot.classList.contains("hidden") || isStandaloneMode()) {
-    installButton.classList.add("hidden");
-    iosInstallHint.classList.add("hidden");
-    return;
-  }
-
-  if (deferredInstallPrompt) {
-    installButton.classList.remove("hidden");
-    iosInstallHint.classList.add("hidden");
-    return;
-  }
-
-  installButton.classList.add("hidden");
-  if (isIos()) {
-    iosInstallHint.classList.remove("hidden");
-  } else {
-    iosInstallHint.classList.add("hidden");
-  }
 }
 
 async function apiFetch(url, options = {}) {
@@ -611,12 +576,16 @@ loginForm.addEventListener("submit", async (event) => {
   try {
     await login(loginUserInput.value.trim(), loginPasswordInput.value);
     loginForm.reset();
+    loginPasswordInput.type = "password";
     setLoggedInState(true);
     await initAppData();
-    refreshInstallUi();
   } catch (error) {
     showLoginError(error.message);
   }
+});
+
+showPasswordInput.addEventListener("change", () => {
+  loginPasswordInput.type = showPasswordInput.checked ? "text" : "password";
 });
 
 logoutButton.addEventListener("click", async () => {
@@ -628,29 +597,6 @@ logoutButton.addEventListener("click", async () => {
 
   setLoggedInState(false);
   showLoginError("");
-});
-
-installButton.addEventListener("click", async () => {
-  if (!deferredInstallPrompt) {
-    refreshInstallUi();
-    return;
-  }
-
-  deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt = null;
-  refreshInstallUi();
-});
-
-window.addEventListener("beforeinstallprompt", (event) => {
-  event.preventDefault();
-  deferredInstallPrompt = event;
-  refreshInstallUi();
-});
-
-window.addEventListener("appinstalled", () => {
-  deferredInstallPrompt = null;
-  refreshInstallUi();
 });
 
 appointmentForm.addEventListener("submit", async (event) => {
@@ -829,7 +775,6 @@ async function init() {
 
   setLoggedInState(true);
   await initAppData();
-  refreshInstallUi();
 }
 
 async function initAppData() {

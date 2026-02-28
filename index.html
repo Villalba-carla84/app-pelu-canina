@@ -26,6 +26,10 @@
           Contraseña
           <input type="password" id="loginPassword" required />
         </label>
+        <label class="password-toggle">
+          <input type="checkbox" id="showPassword" />
+          Mostrar contraseña
+        </label>
         <button type="submit">Iniciar sesión</button>
       </form>
       <p id="loginError" class="login-error hidden"></p>
@@ -39,11 +43,9 @@
         <h1>Registro de Perritos</h1>
         <p class="brand-name">Narices Frías</p>
       </div>
-      <button id="installButton" type="button" class="secondary header-install hidden">Instalar app</button>
       <button id="logoutButton" type="button" class="secondary header-logout">Cerrar sesión</button>
     </header>
     <p class="subtitle">Peluquería canina · Ficha y último servicio realizado</p>
-    <p id="iosInstallHint" class="install-hint hidden">En iPhone: abrí Compartir en Safari y elegí “Agregar a pantalla de inicio”.</p>
 
     <section class="tabs" aria-label="Navegación principal">
       <button type="button" id="tabTurnos" class="tab-button active">Turnos</button>

@@ -43,10 +43,6 @@ h1 {
 }
 
 .header-logout {
-  margin-left: 8px;
-}
-
-.header-install {
   margin-left: auto;
 }
 
@@ -65,13 +61,6 @@ h1 {
 .subtitle {
   margin-top: 0;
   color: #4b5563;
-}
-
-.install-hint {
-  margin-top: -4px;
-  margin-bottom: 12px;
-  color: #4b5563;
-  font-size: 14px;
 }
 
 .tabs {
@@ -131,6 +120,18 @@ h1 {
 
 .login-card .brand-logo {
   margin: 0 auto 8px;
+}
+
+.password-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.password-toggle input {
+  width: auto;
+  padding: 0;
 }
 
 .login-error {
