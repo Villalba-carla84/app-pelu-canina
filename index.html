@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Registro Peluquería Canina</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <section id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <img src="logo.png" alt="Narices Frías" class="brand-logo" />
+      <h2>Ingresar a Narices Frías</h2>
+      <p class="subtitle">Acceso de la peluquería</p>
+      <form id="loginForm" class="form-grid">
+        <label>
+          Usuario
+          <input type="text" id="loginUser" required />
+        </label>
+        <label>
+          Contraseña
+          <input type="password" id="loginPassword" required />
+        </label>
+        <button type="submit">Iniciar sesión</button>
+      </form>
+      <p id="loginError" class="login-error hidden"></p>
+    </div>
+  </section>
+
+  <main id="appRoot" class="container hidden">
+    <header class="brand">
+      <img src="logo.png" alt="Narices Frías" class="brand-logo" />
+      <div>
+        <h1>Registro de Perritos</h1>
+        <p class="brand-name">Narices Frías</p>
+      </div>
+      <button id="installButton" type="button" class="secondary header-install hidden">Instalar app</button>
+      <button id="logoutButton" type="button" class="secondary header-logout">Cerrar sesión</button>
+    </header>
+    <p class="subtitle">Peluquería canina · Ficha y último servicio realizado</p>
+    <p id="iosInstallHint" class="install-hint hidden">En iPhone: abrí Compartir en Safari y elegí “Agregar a pantalla de inicio”.</p>
+
+    <section class="tabs" aria-label="Navegación principal">
+      <button type="button" id="tabTurnos" class="tab-button active">Turnos</button>
+      <button type="button" id="tabPerritos" class="tab-button">Registro de perritos</button>
+    </section>
+
+    <p class="tab-help">Seleccioná qué querés hacer.</p>
+
+    <div id="panelPerritos" class="tab-panel tab-hidden">
+
+    <section class="panel">
+      <h2>Nuevo registro</h2>
+      <form id="dogForm" class="form-grid">
+        <label>
+          Foto del perrito
+          <input type="file" id="foto" accept="image/*" />
+        </label>
+
+        <label>
+          Nombre
+          <input type="text" id="nombre" required />
+        </label>
+
+        <label>
+          Raza
+          <input type="text" id="raza" required />
+        </label>
+
+        <label>
+          Carácter
+          <input type="text" id="caracter" placeholder="Ej: tranquilo, nervioso" required />
+        </label>
+
+        <label>
+          Pelaje
+          <input type="text" id="pelaje" placeholder="Ej: corto, largo, rizado" required />
+        </label>
+
+        <label class="full">
+          Nombre del dueño/a
+          <input type="text" id="duenoNombre" required />
+        </label>
+
+        <label>
+          Teléfono del dueño/a
+          <input type="tel" id="duenoTelefono" required />
+        </label>
+
+        <label>
+          Dirección del dueño/a
+          <input type="text" id="duenoDireccion" />
+        </label>
+
+        <label class="full">
+          Notas del dueño/a
+          <textarea id="duenoNotas" rows="3" placeholder="Observaciones importantes"></textarea>
+        </label>
+
+        <label>
+          Último servicio realizado
+          <input type="text" id="servicio" placeholder="Ej: baño y corte" required />
+        </label>
+
+        <label>
+          Fecha del último servicio
+          <input type="date" id="fechaServicio" required />
+        </label>
+
+        <button type="submit">Guardar perrito</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Perritos agendados</h2>
+      <p id="dogsCount" class="counter-text">Total de perritos registrados: 0</p>
+      <div class="filters">
+        <label>
+          Buscar por nombre
+          <input type="text" id="filtroNombre" placeholder="Ej: Luna" />
+        </label>
+        <label>
+          Buscar por dueño/a
+          <input type="text" id="filtroDueno" placeholder="Ej: Carla" />
+        </label>
+        <label>
+          Buscar por teléfono
+          <input type="text" id="filtroTelefono" placeholder="Ej: 11..." />
+        </label>
+      </div>
+      <div id="dogList" class="cards"></div>
+    </section>
+    </div>
+
+    <div id="panelTurnos" class="tab-panel">
+    <section class="panel">
+      <h2>Carga de turnos</h2>
+      <form id="appointmentForm" class="form-grid">
+        <label>
+          Teléfono del dueño/a
+          <input type="text" id="turnoTelefono" placeholder="Ej: 11..." required />
+        </label>
+
+        <div class="turno-search-action">
+          <button id="buscarPorTelefono" type="button">Buscar perros por teléfono</button>
+        </div>
+
+        <label class="full" id="turnoDogSelectWrap">
+          Perrito encontrado
+          <select id="turnoDogId" required>
+            <option value="">Ingresá teléfono y buscá</option>
+          </select>
+        </label>
+
+        <div id="nuevoPerroTurno" class="turno-nuevo-perro full hidden">
+          <h3>No existe ese teléfono, cargá el perrito</h3>
+          <div class="form-grid">
+            <label>
+              Nombre del perro
+              <input type="text" id="nuevoPerroNombre" />
+            </label>
+            <label>
+              Raza
+              <input type="text" id="nuevoPerroRaza" />
+            </label>
+            <label>
+              Carácter
+              <input type="text" id="nuevoPerroCaracter" />
+            </label>
+            <label>
+              Pelaje
+              <input type="text" id="nuevoPerroPelaje" />
+            </label>
+            <label>
+              Nombre del dueño/a
+              <input type="text" id="nuevoDuenoNombre" />
+            </label>
+            <label>
+              Dirección dueño/a
+              <input type="text" id="nuevoDuenoDireccion" />
+            </label>
+            <label class="full">
+              Notas dueño/a
+              <textarea id="nuevoDuenoNotas" rows="2"></textarea>
+            </label>
+          </div>
+        </label>
+
+        <label>
+          Fecha del turno
+          <input type="date" id="turnoFecha" required />
+        </label>
+
+        <label>
+          Hora del turno
+          <input type="time" id="turnoHora" required />
+        </label>
+
+        <label>
+          Servicio a realizar
+          <input type="text" id="turnoServicio" placeholder="Ej: baño y corte" required />
+        </label>
+
+        <label class="full">
+          Notas del turno
+          <textarea id="turnoNotas" rows="2" placeholder="Observaciones para ese día"></textarea>
+        </label>
+
+        <button type="submit">Guardar turno</button>
+      </form>
+
+      <h3>Turnos del día</h3>
+      <div class="filters">
+        <label>
+          Ver agenda del día
+          <input type="date" id="agendaFecha" required />
+        </label>
+      </div>
+      <div class="export-actions">
+        <button id="exportExcel" type="button">Exportar Excel (CSV) del día</button>
+        <button id="exportPdf" type="button" class="secondary">Exportar PDF del día</button>
+      </div>
+      <div id="appointmentList" class="cards"></div>
+    </section>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

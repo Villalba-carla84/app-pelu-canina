@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: narices-frias
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: APP_USER
+        sync: false
+      - key: APP_PASS
+        sync: false
+      - key: DATA_DIR
+        value: /opt/render/project/src/data
