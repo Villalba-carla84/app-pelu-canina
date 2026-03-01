@@ -46,22 +46,29 @@
       <button id="logoutButton" type="button" class="secondary header-logout">Cerrar sesión</button>
     </header>
     <p class="subtitle">Peluquería canina · Ficha y último servicio realizado</p>
+    <p id="connectionStatus" class="connection-status">Conectando...</p>
 
     <section class="tabs" aria-label="Navegación principal">
-      <button type="button" id="tabTurnos" class="tab-button active">Turnos</button>
-      <button type="button" id="tabPerritos" class="tab-button">Registro de perritos</button>
+      <button type="button" id="tabRegistro" class="tab-button">Registro</button>
+      <button type="button" id="tabPerritos" class="tab-button active">Perritos</button>
+      <button type="button" id="tabCargaTurnos" class="tab-button">Carga de turnos</button>
+      <button type="button" id="tabAgenda" class="tab-button">Agenda</button>
     </section>
 
     <p class="tab-help">Seleccioná qué querés hacer.</p>
 
-    <div id="panelPerritos" class="tab-panel tab-hidden">
-
+    <div id="panelRegistro" class="tab-panel tab-hidden">
     <section class="panel">
       <h2>Nuevo registro</h2>
       <form id="dogForm" class="form-grid">
         <label>
-          Foto del perrito
+          Foto del perrito (archivo)
           <input type="file" id="foto" accept="image/*" />
+        </label>
+
+        <label>
+          Sacar foto con cámara
+          <input type="file" id="fotoCamara" accept="image/*" capture="environment" />
         </label>
 
         <label>
@@ -117,9 +124,11 @@
         <button type="submit">Guardar perrito</button>
       </form>
     </section>
+    </div>
 
+    <div id="panelPerritos" class="tab-panel">
     <section class="panel">
-      <h2>Perritos agendados</h2>
+      <h2>Registro de perritos</h2>
       <p id="dogsCount" class="counter-text">Total de perritos registrados: 0</p>
       <div class="filters">
         <label>
@@ -135,11 +144,12 @@
           <input type="text" id="filtroTelefono" placeholder="Ej: 11..." />
         </label>
       </div>
-      <div id="dogList" class="cards"></div>
+      <div id="dogList" class="dog-grid"></div>
+      <div id="dogDetail" class="panel hidden"></div>
     </section>
     </div>
 
-    <div id="panelTurnos" class="tab-panel">
+    <div id="panelCargaTurnos" class="tab-panel tab-hidden">
     <section class="panel">
       <h2>Carga de turnos</h2>
       <form id="appointmentForm" class="form-grid">
@@ -191,7 +201,7 @@
               <textarea id="nuevoDuenoNotas" rows="2"></textarea>
             </label>
           </div>
-        </label>
+        </div>
 
         <label>
           Fecha del turno
@@ -215,17 +225,28 @@
 
         <button type="submit">Guardar turno</button>
       </form>
+    </section>
+    </div>
 
-      <h3>Turnos del día</h3>
+    <div id="panelAgenda" class="tab-panel tab-hidden">
+    <section class="panel">
+      <h2>Agenda de turnos</h2>
       <div class="filters">
         <label>
-          Ver agenda del día
+          Vista
+          <select id="agendaModo">
+            <option value="dia">Día</option>
+            <option value="semana">Semana</option>
+          </select>
+        </label>
+        <label>
+          Fecha base
           <input type="date" id="agendaFecha" required />
         </label>
       </div>
       <div class="export-actions">
-        <button id="exportExcel" type="button">Exportar Excel (CSV) del día</button>
-        <button id="exportPdf" type="button" class="secondary">Exportar PDF del día</button>
+        <button id="exportExcel" type="button">Exportar Excel (CSV)</button>
+        <button id="exportPdf" type="button" class="secondary">Exportar PDF</button>
       </div>
       <div id="appointmentList" class="cards"></div>
     </section>

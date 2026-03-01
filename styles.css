@@ -63,10 +63,26 @@ h1 {
   color: #4b5563;
 }
 
+.connection-status {
+  margin-top: -6px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.connection-status.online {
+  color: #166534;
+}
+
+.connection-status.offline {
+  color: #b45309;
+}
+
 .tabs {
   display: flex;
   gap: 8px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .tab-button {
@@ -200,6 +216,41 @@ button.secondary:hover {
   gap: 12px;
 }
 
+.dog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.dog-summary-card {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fafafa;
+  padding: 10px;
+  text-align: left;
+}
+
+.dog-summary-card img {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #d1d5db;
+}
+
+.dog-summary-card p {
+  margin: 2px 0;
+  color: #374151;
+}
+
+.dog-detail-title {
+  margin: 0 0 10px;
+}
+
 .filters {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -260,6 +311,11 @@ button.secondary:hover {
   gap: 8px;
 }
 
+.detail-top-actions {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
 .empty {
   color: #6b7280;
   font-style: italic;
@@ -274,6 +330,17 @@ button.secondary:hover {
 
 .appointment-item p {
   margin: 4px 0;
+}
+
+.pending-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 @media (max-width: 640px) {

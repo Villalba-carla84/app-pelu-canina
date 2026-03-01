@@ -101,10 +101,19 @@ db.serialize(() => {
       hora_turno TEXT NOT NULL,
       servicio TEXT NOT NULL,
       notas TEXT,
+      estado TEXT NOT NULL DEFAULT 'pendiente',
+      servicio_realizado TEXT,
+      fecha_realizacion TEXT,
+      notas_realizacion TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (dog_id) REFERENCES dogs(id) ON DELETE CASCADE
     )
   `);
+
+  db.run("ALTER TABLE appointments ADD COLUMN estado TEXT NOT NULL DEFAULT 'pendiente'");
+  db.run("ALTER TABLE appointments ADD COLUMN servicio_realizado TEXT");
+  db.run("ALTER TABLE appointments ADD COLUMN fecha_realizacion TEXT");
+  db.run("ALTER TABLE appointments ADD COLUMN notas_realizacion TEXT");
 });
 
 const storage = multer.diskStorage({
@@ -236,6 +245,40 @@ app.get("/api/dogs/:id/history", async (req, res) => {
   }
 });
 
+app.get("/api/dogs/:id/appointments", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const appointments = await allQuery(
+      `
+        SELECT
+          a.id,
+          a.dog_id,
+          a.fecha_turno,
+          a.hora_turno,
+          a.servicio,
+          a.notas,
+          a.estado,
+          a.servicio_realizado,
+          a.fecha_realizacion,
+          a.notas_realizacion,
+          d.nombre AS perro_nombre,
+          d.raza AS perro_raza,
+          d.dueno_nombre,
+          d.dueno_telefono
+        FROM appointments a
+        INNER JOIN dogs d ON d.id = a.dog_id
+        WHERE a.dog_id = ?
+        ORDER BY a.fecha_turno DESC, a.hora_turno DESC, a.id DESC
+      `,
+      [id]
+    );
+    return res.json(appointments);
+  } catch {
+    return res.status(500).json({ error: "No se pudieron obtener los turnos del perrito" });
+  }
+});
+
 app.post("/api/dogs", upload.single("foto"), async (req, res) => {
   const {
     nombre,
@@ -342,8 +385,8 @@ app.post("/api/appointments", async (req, res) => {
 
     const insert = await runQuery(
       `
-        INSERT INTO appointments (dog_id, fecha_turno, hora_turno, servicio, notas)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO appointments (dog_id, fecha_turno, hora_turno, servicio, notas, estado)
+        VALUES (?, ?, ?, ?, ?, 'pendiente')
       `,
       [dogId, fechaTurno, horaTurno, servicio, notas || ""]
     );
@@ -357,6 +400,10 @@ app.post("/api/appointments", async (req, res) => {
           a.hora_turno,
           a.servicio,
           a.notas,
+          a.estado,
+          a.servicio_realizado,
+          a.fecha_realizacion,
+          a.notas_realizacion,
           d.nombre AS perro_nombre,
           d.dueno_nombre,
           d.dueno_telefono
@@ -390,6 +437,10 @@ app.get("/api/appointments", async (req, res) => {
           a.hora_turno,
           a.servicio,
           a.notas,
+          a.estado,
+          a.servicio_realizado,
+          a.fecha_realizacion,
+          a.notas_realizacion,
           d.nombre AS perro_nombre,
           d.raza AS perro_raza,
           d.dueno_nombre,
@@ -404,6 +455,95 @@ app.get("/api/appointments", async (req, res) => {
     return res.json(rows);
   } catch {
     return res.status(500).json({ error: "No se pudieron obtener los turnos" });
+  }
+});
+
+app.put("/api/appointments/:id/complete", async (req, res) => {
+  const { id } = req.params;
+  const { servicioRealizado, fechaRealizacion, notasRealizacion } = req.body;
+
+  if (!servicioRealizado || !fechaRealizacion) {
+    return res.status(400).json({ error: "Servicio realizado y fecha de realización son obligatorios" });
+  }
+
+  try {
+    const appointment = await getQuery(
+      `
+        SELECT id, dog_id
+        FROM appointments
+        WHERE id = ?
+      `,
+      [id]
+    );
+
+    if (!appointment) {
+      return res.status(404).json({ error: "Turno no encontrado" });
+    }
+
+    const currentDog = await getQuery(
+      "SELECT id, ultimo_servicio, fecha_ultimo_servicio FROM dogs WHERE id = ?",
+      [appointment.dog_id]
+    );
+
+    if (currentDog) {
+      await runQuery(
+        `
+          INSERT INTO service_history (dog_id, servicio, fecha_servicio)
+          VALUES (?, ?, ?)
+        `,
+        [currentDog.id, currentDog.ultimo_servicio, currentDog.fecha_ultimo_servicio]
+      );
+
+      await runQuery(
+        `
+          UPDATE dogs
+          SET ultimo_servicio = ?, fecha_ultimo_servicio = ?
+          WHERE id = ?
+        `,
+        [servicioRealizado, fechaRealizacion, currentDog.id]
+      );
+    }
+
+    await runQuery(
+      `
+        UPDATE appointments
+        SET
+          estado = 'atendido',
+          servicio_realizado = ?,
+          fecha_realizacion = ?,
+          notas_realizacion = ?
+        WHERE id = ?
+      `,
+      [servicioRealizado, fechaRealizacion, notasRealizacion || "", id]
+    );
+
+    const updated = await getQuery(
+      `
+        SELECT
+          a.id,
+          a.dog_id,
+          a.fecha_turno,
+          a.hora_turno,
+          a.servicio,
+          a.notas,
+          a.estado,
+          a.servicio_realizado,
+          a.fecha_realizacion,
+          a.notas_realizacion,
+          d.nombre AS perro_nombre,
+          d.raza AS perro_raza,
+          d.dueno_nombre,
+          d.dueno_telefono
+        FROM appointments a
+        INNER JOIN dogs d ON d.id = a.dog_id
+        WHERE a.id = ?
+      `,
+      [id]
+    );
+
+    return res.json(updated);
+  } catch {
+    return res.status(500).json({ error: "No se pudo registrar la atención" });
   }
 });
 
