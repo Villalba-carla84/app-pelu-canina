@@ -63,6 +63,35 @@ function allQuery(sql, params = []) {
   });
 }
 
+function ensureAppointmentColumns() {
+  db.all("PRAGMA table_info(appointments)", (error, rows) => {
+    if (error) {
+      console.error("No se pudo verificar el esquema de appointments", error.message);
+      return;
+    }
+
+    const currentColumns = new Set((rows || []).map((column) => column.name));
+    const columnsToEnsure = [
+      { name: "estado", sql: "ALTER TABLE appointments ADD COLUMN estado TEXT NOT NULL DEFAULT 'pendiente'" },
+      { name: "servicio_realizado", sql: "ALTER TABLE appointments ADD COLUMN servicio_realizado TEXT" },
+      { name: "fecha_realizacion", sql: "ALTER TABLE appointments ADD COLUMN fecha_realizacion TEXT" },
+      { name: "notas_realizacion", sql: "ALTER TABLE appointments ADD COLUMN notas_realizacion TEXT" },
+    ];
+
+    columnsToEnsure.forEach((column) => {
+      if (currentColumns.has(column.name)) {
+        return;
+      }
+
+      db.run(column.sql, (alterError) => {
+        if (alterError) {
+          console.error(`No se pudo crear columna ${column.name}`, alterError.message);
+        }
+      });
+    });
+  });
+}
+
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS dogs (
@@ -110,10 +139,7 @@ db.serialize(() => {
     )
   `);
 
-  db.run("ALTER TABLE appointments ADD COLUMN estado TEXT NOT NULL DEFAULT 'pendiente'");
-  db.run("ALTER TABLE appointments ADD COLUMN servicio_realizado TEXT");
-  db.run("ALTER TABLE appointments ADD COLUMN fecha_realizacion TEXT");
-  db.run("ALTER TABLE appointments ADD COLUMN notas_realizacion TEXT");
+  ensureAppointmentColumns();
 });
 
 const storage = multer.diskStorage({
