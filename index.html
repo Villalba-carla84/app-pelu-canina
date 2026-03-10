@@ -53,6 +53,7 @@
       <button type="button" id="tabPerritos" class="tab-button active">Perritos</button>
       <button type="button" id="tabCargaTurnos" class="tab-button">Carga de turnos</button>
       <button type="button" id="tabAgenda" class="tab-button">Agenda</button>
+      <button type="button" id="tabRecordatorios" class="tab-button">Recordatorios</button>
     </section>
 
     <p class="tab-help">Seleccioná qué querés hacer.</p>
@@ -162,6 +163,10 @@
           <button id="buscarPorTelefono" type="button">Buscar perros por teléfono</button>
         </div>
 
+        <div class="turno-search-action">
+          <button id="elegirContacto" type="button" class="secondary">Elegir contacto</button>
+        </div>
+
         <label class="full" id="turnoDogSelectWrap">
           Perrito encontrado
           <select id="turnoDogId" required>
@@ -237,6 +242,7 @@
           <select id="agendaModo">
             <option value="dia">Día</option>
             <option value="semana">Semana</option>
+            <option value="mes">Mes</option>
           </select>
         </label>
         <label>
@@ -249,6 +255,14 @@
         <button id="exportPdf" type="button" class="secondary">Exportar PDF</button>
       </div>
       <div id="appointmentList" class="cards"></div>
+    </section>
+    </div>
+
+    <div id="panelRecordatorios" class="tab-panel tab-hidden">
+    <section class="panel">
+      <h2>Recordatorios de mantenimiento</h2>
+      <p class="subtitle">Se calculan cada 15 días desde la última atención, según la fecha y vista seleccionadas en Agenda.</p>
+      <div id="remindersList" class="cards"></div>
     </section>
     </div>
   </main>

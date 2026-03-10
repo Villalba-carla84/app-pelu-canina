@@ -6,7 +6,7 @@ body {
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
   background: #f3f4f6;
-  color: #1f2937;
+  color: #121212;
   position: relative;
   min-height: 100vh;
 }
@@ -19,7 +19,7 @@ body::before {
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
-  opacity: 0.12;
+  opacity: 0.35;
   z-index: -1;
 }
 
@@ -47,8 +47,8 @@ h1 {
 }
 
 .brand-logo {
-  width: 72px;
-  height: 72px;
+  width: 110px;
+  height: 110px;
   object-fit: contain;
 }
 
@@ -96,9 +96,17 @@ h1 {
 }
 
 .tab-button.active {
-  background: #2563eb;
+  background: #f16b23;
   color: #ffffff;
-  border-color: #2563eb;
+  border-color: #3a230a;
+}
+
+.tab-button.has-alert,
+.tab-button.has-alert:hover,
+.tab-button.has-alert.active {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
 }
 
 .tab-help {
@@ -193,14 +201,14 @@ button {
 
 button {
   border: none;
-  background: #2563eb;
+  background: #ee986a;
   color: #fff;
   cursor: pointer;
   font-weight: 600;
 }
 
 button:hover {
-  background: #1d4ed8;
+  background: #d8621d;
 }
 
 button.secondary {
@@ -344,6 +352,11 @@ button.secondary:hover {
 }
 
 @media (max-width: 640px) {
+  .brand-logo {
+    width: 84px;
+    height: 84px;
+  }
+
   .card {
     grid-template-columns: 1fr;
   }

@@ -32,14 +32,17 @@ const tabRegistroButton = document.getElementById("tabRegistro");
 const tabPerritosButton = document.getElementById("tabPerritos");
 const tabCargaTurnosButton = document.getElementById("tabCargaTurnos");
 const tabAgendaButton = document.getElementById("tabAgenda");
+const tabRecordatoriosButton = document.getElementById("tabRecordatorios");
 const panelRegistro = document.getElementById("panelRegistro");
 const panelPerritos = document.getElementById("panelPerritos");
 const panelCargaTurnos = document.getElementById("panelCargaTurnos");
 const panelAgenda = document.getElementById("panelAgenda");
+const panelRecordatorios = document.getElementById("panelRecordatorios");
 
 const appointmentForm = document.getElementById("appointmentForm");
 const turnoTelefonoInput = document.getElementById("turnoTelefono");
 const buscarPorTelefonoButton = document.getElementById("buscarPorTelefono");
+const elegirContactoButton = document.getElementById("elegirContacto");
 const turnoDogIdInput = document.getElementById("turnoDogId");
 const turnoFechaInput = document.getElementById("turnoFecha");
 const turnoHoraInput = document.getElementById("turnoHora");
@@ -48,6 +51,7 @@ const turnoNotasInput = document.getElementById("turnoNotas");
 const agendaModoInput = document.getElementById("agendaModo");
 const agendaFechaInput = document.getElementById("agendaFecha");
 const appointmentList = document.getElementById("appointmentList");
+const remindersList = document.getElementById("remindersList");
 
 const nuevoPerroTurno = document.getElementById("nuevoPerroTurno");
 const nuevoPerroNombreInput = document.getElementById("nuevoPerroNombre");
@@ -67,9 +71,11 @@ const AUTH_STORAGE_KEY = "narices_frias_token";
 const DOGS_CACHE_KEY = "narices_frias_dogs_cache";
 const APPOINTMENTS_CACHE_KEY = "narices_frias_appointments_cache";
 const PENDING_APPOINTMENTS_KEY = "narices_frias_pending_appointments";
+const REMINDERS_TAB_BASE_LABEL = "Recordatorios";
 
 let currentAppointments = [];
 let currentDogs = [];
+let currentMaintenanceReminders = [];
 let authToken = localStorage.getItem(AUTH_STORAGE_KEY) || "";
 
 function formatDate(isoDate) {
@@ -105,6 +111,13 @@ function daysBetween(dateA, dateB) {
   const first = new Date(`${dateA}T00:00:00`);
   const second = new Date(`${dateB}T00:00:00`);
   const ms = Math.abs(first.getTime() - second.getTime());
+  return Math.round(ms / (1000 * 60 * 60 * 24));
+}
+
+function daysBetweenSigned(dateA, dateB) {
+  const first = new Date(`${dateA}T00:00:00`);
+  const second = new Date(`${dateB}T00:00:00`);
+  const ms = second.getTime() - first.getTime();
   return Math.round(ms / (1000 * 60 * 60 * 24));
 }
 
@@ -275,16 +288,19 @@ function setActiveTab(tabName) {
   const isPerritos = tabName === "perritos";
   const isCargaTurnos = tabName === "carga-turnos";
   const isAgenda = tabName === "agenda";
+  const isRecordatorios = tabName === "recordatorios";
 
   panelRegistro.classList.toggle("tab-hidden", !isRegistro);
   panelPerritos.classList.toggle("tab-hidden", !isPerritos);
   panelCargaTurnos.classList.toggle("tab-hidden", !isCargaTurnos);
   panelAgenda.classList.toggle("tab-hidden", !isAgenda);
+  panelRecordatorios.classList.toggle("tab-hidden", !isRecordatorios);
 
   tabRegistroButton.classList.toggle("active", isRegistro);
   tabPerritosButton.classList.toggle("active", isPerritos);
   tabCargaTurnosButton.classList.toggle("active", isCargaTurnos);
   tabAgendaButton.classList.toggle("active", isAgenda);
+  tabRecordatoriosButton.classList.toggle("active", isRecordatorios);
 }
 
 function setDogSelectOptions(dogs) {
@@ -538,6 +554,127 @@ async function searchDogsForTurno() {
   }
 }
 
+function getContactName(contact) {
+  if (!contact) return "";
+
+  if (Array.isArray(contact.name) && contact.name.length) {
+    return String(contact.name[0] || "").trim();
+  }
+
+  if (contact.name && typeof contact.name === "object") {
+    const display = String(contact.name.display || "").trim();
+    if (display) return display;
+    const composed = [contact.name.given, contact.name.middle, contact.name.family]
+      .map((part) => String(part || "").trim())
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    if (composed) return composed;
+  }
+
+  return "";
+}
+
+function getContactPhone(contact) {
+  if (!contact) return "";
+
+  if (Array.isArray(contact.tel) && contact.tel.length) {
+    return String(contact.tel[0] || "").trim();
+  }
+
+  if (Array.isArray(contact.phones) && contact.phones.length) {
+    const phoneItem = contact.phones.find((item) => item && item.number) || contact.phones[0];
+    return String((phoneItem && phoneItem.number) || "").trim();
+  }
+
+  return "";
+}
+
+async function pickContactWithCapacitor() {
+  const contactsPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Contacts;
+  if (!contactsPlugin || typeof contactsPlugin.pickContact !== "function") {
+    return null;
+  }
+
+  if (typeof contactsPlugin.requestPermissions === "function") {
+    const permission = await contactsPlugin.requestPermissions();
+    const status = permission && permission.contacts;
+    if (status === "denied" || status === "prompt-with-rationale") {
+      throw new Error("Permiso denegado para acceder a contactos.");
+    }
+  }
+
+  const result = await contactsPlugin.pickContact({
+    projection: {
+      name: true,
+      phones: true,
+    },
+  });
+
+  return result && result.contact ? result.contact : null;
+}
+
+async function pickContactWithBrowser() {
+  const contactsApi = navigator.contacts;
+  const supportsContactPicker = !!(contactsApi && typeof contactsApi.select === "function");
+  if (!supportsContactPicker) {
+    return null;
+  }
+
+  const selected = await contactsApi.select(["name", "tel"], { multiple: false });
+  if (!selected || !selected.length) {
+    return null;
+  }
+
+  return selected[0];
+}
+
+async function pickContactForTurno() {
+  try {
+    let contact = null;
+    let nativePickerError = null;
+    try {
+      contact = await pickContactWithCapacitor();
+    } catch (error) {
+      nativePickerError = error;
+      contact = null;
+    }
+
+    if (!contact) {
+      if (nativePickerError && nativePickerError.message && /denegado/i.test(nativePickerError.message)) {
+        throw nativePickerError;
+      }
+      contact = await pickContactWithBrowser();
+    }
+
+    if (!contact) {
+      alert("No se encontró selector de contactos disponible. Ingresá el teléfono manualmente.");
+      return;
+    }
+
+    const phone = normalizePhone(getContactPhone(contact));
+    if (!phone) {
+      alert("El contacto elegido no tiene teléfono válido.");
+      return;
+    }
+
+    turnoTelefonoInput.value = phone;
+
+    const contactName = getContactName(contact);
+    if (contactName && !nuevoDuenoNombreInput.value.trim()) {
+      nuevoDuenoNombreInput.value = contactName;
+    }
+
+    await searchDogsForTurno();
+  } catch (error) {
+    if (error && error.message && /denegado/i.test(error.message)) {
+      alert(error.message);
+      return;
+    }
+    alert("No se pudo acceder a los contactos o se canceló la selección.");
+  }
+}
+
 async function syncPendingAppointments() {
   if (!navigator.onLine) {
     return;
@@ -702,8 +839,8 @@ function getWeekDates(baseDate) {
   const [year, month, day] = String(baseDate).split("-").map(Number);
   const date = new Date(year, month - 1, day);
   const dayOfWeek = date.getDay();
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  date.setDate(date.getDate() + mondayOffset);
+  const sundayOffset = -dayOfWeek;
+  date.setDate(date.getDate() + sundayOffset);
 
   const dates = [];
   for (let index = 0; index < 7; index += 1) {
@@ -716,6 +853,126 @@ function getWeekDates(baseDate) {
   }
 
   return dates;
+}
+
+function getMonthDates(baseDate) {
+  const [year, month] = String(baseDate).split("-").map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  const dates = [];
+
+  for (let day = 1; day <= lastDay; day += 1) {
+    const y = year;
+    const m = String(month).padStart(2, "0");
+    const d = String(day).padStart(2, "0");
+    dates.push(`${y}-${m}-${d}`);
+  }
+
+  return dates;
+}
+
+function getAgendaDates(baseDate, mode) {
+  if (mode === "dia") return [baseDate];
+  if (mode === "semana") return getWeekDates(baseDate);
+  return getMonthDates(baseDate);
+}
+
+function buildMaintenanceReminders(dogs, agendaDates) {
+  if (!dogs.length || !agendaDates.length) {
+    return [];
+  }
+
+  const reminders = [];
+  const agendaDateSet = new Set(agendaDates);
+
+  dogs.forEach((dog) => {
+    const serviceDate = String(dog.fecha_ultimo_servicio || "").trim();
+    if (!serviceDate) return;
+
+    agendaDates.forEach((date) => {
+      if (!agendaDateSet.has(date)) return;
+      const dayDiff = daysBetweenSigned(serviceDate, date);
+      if (dayDiff > 0 && dayDiff % 15 === 0) {
+        reminders.push({
+          fecha_recordatorio: date,
+          perro_nombre: dog.nombre,
+          perro_raza: dog.raza,
+          dueno_nombre: dog.dueno_nombre,
+          dueno_telefono: dog.dueno_telefono,
+          ultimo_servicio: dog.ultimo_servicio,
+          fecha_ultimo_servicio: serviceDate,
+          dias_desde_ultimo_servicio: dayDiff,
+        });
+      }
+    });
+  });
+
+  return reminders.sort((a, b) => {
+    const byDate = a.fecha_recordatorio.localeCompare(b.fecha_recordatorio);
+    if (byDate !== 0) return byDate;
+    return String(a.perro_nombre || "").localeCompare(String(b.perro_nombre || ""), "es", { sensitivity: "base" });
+  });
+}
+
+function getModeLabel(mode) {
+  if (mode === "semana") return "semana";
+  if (mode === "mes") return "mes";
+  return "día";
+}
+
+function updateReminderAlertTab() {
+  if (currentMaintenanceReminders.length > 0) {
+    tabRecordatoriosButton.textContent = `${REMINDERS_TAB_BASE_LABEL} (${currentMaintenanceReminders.length})`;
+  } else {
+    tabRecordatoriosButton.textContent = REMINDERS_TAB_BASE_LABEL;
+  }
+
+  tabRecordatoriosButton.classList.toggle("has-alert", currentMaintenanceReminders.length > 0);
+}
+
+function renderMaintenanceList(reminders) {
+  if (!reminders.length) {
+    return "<p class='empty'>No hay recordatorios para este período.</p>";
+  }
+
+  return reminders
+    .map(
+      (item) => `
+      <article class="appointment-item">
+        <p><strong>Recordar para:</strong> ${formatDate(item.fecha_recordatorio)}</p>
+        <p><strong>Perrito:</strong> ${escapeHtml(item.perro_nombre)} (${escapeHtml(item.perro_raza || "-")})</p>
+        <p><strong>Dueño/a:</strong> ${escapeHtml(item.dueno_nombre || "-")} · ${escapeHtml(item.dueno_telefono || "-")}</p>
+        <p><strong>Último servicio:</strong> ${escapeHtml(item.ultimo_servicio || "-")} · ${formatDate(item.fecha_ultimo_servicio)}</p>
+        <p><strong>Intervalo:</strong> ${escapeHtml(String(item.dias_desde_ultimo_servicio))} días desde la última atención</p>
+      </article>
+    `
+    )
+    .join("");
+}
+
+function renderReminderPanel(reminders) {
+  currentMaintenanceReminders = reminders;
+  updateReminderAlertTab();
+
+  if (!remindersList) {
+    return;
+  }
+
+  remindersList.innerHTML = renderMaintenanceList(reminders);
+}
+
+async function loadMaintenanceReminders(date, mode) {
+  if (!date) {
+    return [];
+  }
+
+  const agendaDates = getAgendaDates(date, mode);
+
+  try {
+    const allDogs = await fetchDogs(false);
+    return buildMaintenanceReminders(allDogs, agendaDates);
+  } catch {
+    return buildMaintenanceReminders(getCachedDogs(), agendaDates);
+  }
 }
 
 function mapPendingForDate(date) {
@@ -742,8 +999,11 @@ async function renderAppointments() {
   if (!date) {
     appointmentList.innerHTML = "<p class='empty'>Seleccioná una fecha para ver turnos.</p>";
     currentAppointments = [];
+    renderReminderPanel([]);
     return;
   }
+
+  const agendaDates = getAgendaDates(date, mode);
 
   try {
     if (mode === "dia") {
@@ -753,28 +1013,27 @@ async function renderAppointments() {
         `${a.fecha_turno} ${a.hora_turno}`.localeCompare(`${b.fecha_turno} ${b.hora_turno}`)
       );
     } else {
-      const weekDates = getWeekDates(date);
-      const allByWeek = [];
+      const allAppointments = [];
 
-      for (const weekDate of weekDates) {
+      for (const agendaDate of agendaDates) {
         let appointmentsForDate = [];
         try {
-          appointmentsForDate = await fetchAppointmentsByDate(weekDate);
+          appointmentsForDate = await fetchAppointmentsByDate(agendaDate);
         } catch {
           appointmentsForDate = [];
         }
 
-        const pendingForDate = mapPendingForDate(weekDate);
-        allByWeek.push(...appointmentsForDate, ...pendingForDate);
+        const pendingForDate = mapPendingForDate(agendaDate);
+        allAppointments.push(...appointmentsForDate, ...pendingForDate);
       }
 
-      currentAppointments = allByWeek.sort((a, b) => `${a.fecha_turno} ${a.hora_turno}`.localeCompare(`${b.fecha_turno} ${b.hora_turno}`));
+      currentAppointments = allAppointments.sort((a, b) => `${a.fecha_turno} ${a.hora_turno}`.localeCompare(`${b.fecha_turno} ${b.hora_turno}`));
     }
   } catch (error) {
     if (mode === "dia") {
       currentAppointments = mapPendingForDate(date);
     } else {
-      currentAppointments = getWeekDates(date).flatMap((weekDate) => mapPendingForDate(weekDate));
+      currentAppointments = agendaDates.flatMap((agendaDate) => mapPendingForDate(agendaDate));
     }
 
     if (!currentAppointments.length) {
@@ -783,12 +1042,15 @@ async function renderAppointments() {
     }
   }
 
+  const reminders = await loadMaintenanceReminders(date, mode);
+  renderReminderPanel(reminders);
+
   if (!currentAppointments.length) {
-    appointmentList.innerHTML = `<p class='empty'>No hay turnos para ${mode === "dia" ? "ese día" : "esa semana"}.</p>`;
+    appointmentList.innerHTML = `<p class='empty'>No hay turnos para ese ${getModeLabel(mode)}.</p>`;
     return;
   }
 
-  appointmentList.innerHTML = currentAppointments
+  const appointmentsHtml = currentAppointments
     .map(
       (appointment) => `
       <article class="appointment-item">
@@ -810,6 +1072,8 @@ async function renderAppointments() {
     `
     )
     .join("");
+
+  appointmentList.innerHTML = appointmentsHtml;
 }
 
 function buildAppointmentExportRows() {
@@ -827,7 +1091,7 @@ function buildAppointmentExportRows() {
 
 function exportAppointmentsToCsv() {
   if (!currentAppointments.length) {
-    alert("No hay turnos agendados para exportar en ese día.");
+    alert(`No hay turnos agendados para exportar en ese ${getModeLabel(agendaModoInput.value)}.`);
     return;
   }
 
@@ -847,7 +1111,7 @@ function exportAppointmentsToCsv() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  const modeSuffix = agendaModoInput.value === "semana" ? "semana" : "dia";
+  const modeSuffix = agendaModoInput.value === "semana" ? "semana" : agendaModoInput.value === "mes" ? "mes" : "dia";
   link.download = `turnos_${modeSuffix}_${agendaFechaInput.value || todayIsoDate()}.csv`;
   document.body.appendChild(link);
   link.click();
@@ -857,7 +1121,7 @@ function exportAppointmentsToCsv() {
 
 function exportAppointmentsToPdf() {
   if (!currentAppointments.length) {
-    alert("No hay turnos agendados para exportar en ese día.");
+    alert(`No hay turnos agendados para exportar en ese ${getModeLabel(agendaModoInput.value)}.`);
     return;
   }
 
@@ -879,7 +1143,12 @@ function exportAppointmentsToPdf() {
     row.notas,
   ]);
 
-  const title = agendaModoInput.value === "semana" ? `Turnos de la semana de ${formatDate(agendaFechaInput.value)}` : `Turnos del día ${formatDate(agendaFechaInput.value)}`;
+  const title =
+    agendaModoInput.value === "semana"
+      ? `Turnos de la semana de ${formatDate(agendaFechaInput.value)}`
+      : agendaModoInput.value === "mes"
+        ? `Turnos del mes de ${formatDate(agendaFechaInput.value)}`
+        : `Turnos del día ${formatDate(agendaFechaInput.value)}`;
 
   doc.setFontSize(14);
   doc.text(title, 14, 14);
@@ -899,7 +1168,7 @@ function exportAppointmentsToPdf() {
     headStyles: { fillColor: [37, 99, 235] },
   });
 
-  const modeSuffix = agendaModoInput.value === "semana" ? "semana" : "dia";
+  const modeSuffix = agendaModoInput.value === "semana" ? "semana" : agendaModoInput.value === "mes" ? "mes" : "dia";
   doc.save(`turnos_${modeSuffix}_${agendaFechaInput.value || todayIsoDate()}.pdf`);
 }
 
@@ -1183,6 +1452,10 @@ buscarPorTelefonoButton.addEventListener("click", () => {
   searchDogsForTurno();
 });
 
+elegirContactoButton.addEventListener("click", () => {
+  pickContactForTurno();
+});
+
 filtroNombreInput.addEventListener("input", () => {
   renderDogs();
 });
@@ -1221,6 +1494,10 @@ tabCargaTurnosButton.addEventListener("click", () => {
 
 tabAgendaButton.addEventListener("click", () => {
   setActiveTab("agenda");
+});
+
+tabRecordatoriosButton.addEventListener("click", () => {
+  setActiveTab("recordatorios");
 });
 
 agendaModoInput.addEventListener("change", () => {

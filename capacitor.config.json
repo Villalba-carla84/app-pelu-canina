@@ -1,0 +1,9 @@
+{
+  "appId": "com.naricesfrias.app",
+  "appName": "Narices Frías",
+  "webDir": "www",
+  "server": {
+    "url": "https://narices-frias-4ji2.onrender.com",
+    "cleartext": false
+  }
+}
