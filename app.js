@@ -9,11 +9,11 @@ const loginError = document.getElementById("loginError");
 const logoutButton = document.getElementById("logoutButton");
 const connectionStatus = document.getElementById("connectionStatus");
 const fotoInput = document.getElementById("foto");
-const fotoCamaraInput = document.getElementById("fotoCamara");
 const nombreInput = document.getElementById("nombre");
 const razaInput = document.getElementById("raza");
 const caracterInput = document.getElementById("caracter");
 const pelajeInput = document.getElementById("pelaje");
+const tamanoInput = document.getElementById("tamano");
 const duenoNombreInput = document.getElementById("duenoNombre");
 const duenoTelefonoInput = document.getElementById("duenoTelefono");
 const duenoDireccionInput = document.getElementById("duenoDireccion");
@@ -41,8 +41,9 @@ const panelRecordatorios = document.getElementById("panelRecordatorios");
 
 const appointmentForm = document.getElementById("appointmentForm");
 const turnoTelefonoInput = document.getElementById("turnoTelefono");
+const turnoDuenoInput = document.getElementById("turnoDueno");
+const turnoPerroInput = document.getElementById("turnoPerro");
 const buscarPorTelefonoButton = document.getElementById("buscarPorTelefono");
-const elegirContactoButton = document.getElementById("elegirContacto");
 const turnoDogIdInput = document.getElementById("turnoDogId");
 const turnoFechaInput = document.getElementById("turnoFecha");
 const turnoHoraInput = document.getElementById("turnoHora");
@@ -414,6 +415,53 @@ async function fetchDogsByPhone(phone) {
   }
 }
 
+async function fetchDogsForTurnoFilters({ phone, owner, name }) {
+  const hasOnlyPhone = !!phone && !owner && !name;
+  if (hasOnlyPhone) {
+    return fetchDogsByPhone(phone);
+  }
+
+  const params = new URLSearchParams();
+  params.append("phone", phone || "");
+  params.append("owner", owner || "");
+  params.append("name", name || "");
+
+  try {
+    const response = await apiFetch(`${DOGS_API}?${params.toString()}`);
+    if (!response.ok) {
+      throw new Error("No se pudo buscar perritos");
+    }
+
+    const dogs = await response.json();
+    const existing = getCachedDogs();
+    const mergedById = new Map(existing.map((dog) => [dog.id, dog]));
+    dogs.forEach((dog) => mergedById.set(dog.id, dog));
+    setCachedDogs(Array.from(mergedById.values()));
+    return dogs;
+  } catch (error) {
+    const ownerLower = String(owner || "").toLowerCase();
+    const nameLower = String(name || "").toLowerCase();
+
+    const cached = getCachedDogs().filter((dog) => {
+      const normalizedDogPhone = normalizePhone(dog.dueno_telefono || "");
+      const matchesPhone =
+        !phone ||
+        normalizedDogPhone === phone ||
+        normalizedDogPhone.endsWith(phone) ||
+        phone.endsWith(normalizedDogPhone);
+      const matchesOwner = !ownerLower || String(dog.dueno_nombre || "").toLowerCase().includes(ownerLower);
+      const matchesName = !nameLower || String(dog.nombre || "").toLowerCase().includes(nameLower);
+      return matchesPhone && matchesOwner && matchesName;
+    });
+
+    if (!cached.length) {
+      throw error;
+    }
+
+    return cached;
+  }
+}
+
 async function fetchDogHistory(dogId) {
   const response = await apiFetch(`${DOGS_API}/${dogId}/history`);
   if (!response.ok) {
@@ -465,7 +513,7 @@ async function createDogFromPayload(payload) {
 
 async function createDog() {
   const payload = new FormData();
-  const selectedPhoto = fotoCamaraInput.files[0] || fotoInput.files[0];
+  const selectedPhoto = fotoInput.files[0];
   if (selectedPhoto) {
     payload.append("foto", selectedPhoto);
   }
@@ -474,6 +522,7 @@ async function createDog() {
   payload.append("raza", razaInput.value.trim());
   payload.append("caracter", caracterInput.value.trim());
   payload.append("pelaje", pelajeInput.value.trim());
+  payload.append("tamano", tamanoInput.value.trim());
   payload.append("duenoNombre", duenoNombreInput.value.trim());
   payload.append("duenoTelefono", normalizePhone(duenoTelefonoInput.value));
   payload.append("duenoDireccion", duenoDireccionInput.value.trim());
@@ -565,16 +614,19 @@ async function completeAppointment(appointmentId, payload) {
 
 async function searchDogsForTurno() {
   const phone = normalizePhone(turnoTelefonoInput.value);
-  if (!phone) {
-    alert("Ingresá un teléfono válido para buscar.");
+  const owner = turnoDuenoInput.value.trim();
+  const name = turnoPerroInput.value.trim();
+
+  if (!phone && !owner && !name) {
+    alert("Ingresá al menos un criterio: teléfono, dueño o perrito.");
     return;
   }
 
   try {
-    const dogs = await fetchDogsByPhone(phone);
+    const dogs = await fetchDogsForTurnoFilters({ phone, owner, name });
     setDogSelectOptions(dogs);
     if (!dogs.length) {
-      toggleNewDogForm(true);
+      toggleNewDogForm(!!phone);
       return;
     }
     toggleNewDogForm(false);
@@ -755,6 +807,7 @@ function renderDogDetail(dog) {
         <p><strong>Raza:</strong> ${escapeHtml(dog.raza)}</p>
         <p><strong>Carácter:</strong> ${escapeHtml(dog.caracter)}</p>
         <p><strong>Pelaje:</strong> ${escapeHtml(dog.pelaje)}</p>
+        <p><strong>Tamaño:</strong> ${escapeHtml(dog.tamano || "-")}</p>
         <p><strong>Dueño/a:</strong> ${escapeHtml(dog.dueno_nombre)}</p>
         <p><strong>Teléfono:</strong> ${escapeHtml(dog.dueno_telefono)}</p>
         <p><strong>Dirección:</strong> ${escapeHtml(dog.dueno_direccion || "-")}</p>
@@ -911,31 +964,47 @@ function buildMaintenanceReminders(dogs, agendaDates) {
   }
 
   const reminders = [];
-  const agendaDateSet = new Set(agendaDates);
+  const reminderOffsetDays = 12;
+  const sortedAgendaDates = [...agendaDates].sort((a, b) => a.localeCompare(b));
+  const today = todayIsoDate();
 
   dogs.forEach((dog) => {
     const serviceDate = String(dog.fecha_ultimo_servicio || "").trim();
     if (!serviceDate) return;
 
-    agendaDates.forEach((date) => {
-      if (!agendaDateSet.has(date)) return;
+    const nextReminderDate = sortedAgendaDates.find((date) => {
       const dayDiff = daysBetweenSigned(serviceDate, date);
-      if (dayDiff > 0 && dayDiff % 15 === 0) {
-        reminders.push({
-          fecha_recordatorio: date,
-          perro_nombre: dog.nombre,
-          perro_raza: dog.raza,
-          dueno_nombre: dog.dueno_nombre,
-          dueno_telefono: dog.dueno_telefono,
-          ultimo_servicio: dog.ultimo_servicio,
-          fecha_ultimo_servicio: serviceDate,
-          dias_desde_ultimo_servicio: dayDiff,
-        });
-      }
+      return dayDiff >= reminderOffsetDays && (dayDiff - reminderOffsetDays) % 15 === 0;
+    });
+
+    if (!nextReminderDate) {
+      return;
+    }
+
+    const dayDiff = daysBetweenSigned(serviceDate, nextReminderDate);
+    reminders.push({
+      fecha_recordatorio: nextReminderDate,
+      perro_nombre: dog.nombre,
+      perro_raza: dog.raza,
+      dueno_nombre: dog.dueno_nombre,
+      dueno_telefono: dog.dueno_telefono,
+      ultimo_servicio: dog.ultimo_servicio,
+      fecha_ultimo_servicio: serviceDate,
+      dias_desde_ultimo_servicio: dayDiff,
+      dias_hasta_recordatorio: daysBetweenSigned(today, nextReminderDate),
     });
   });
 
   return reminders.sort((a, b) => {
+    const aIsFuture = a.dias_hasta_recordatorio >= 0 ? 0 : 1;
+    const bIsFuture = b.dias_hasta_recordatorio >= 0 ? 0 : 1;
+    if (aIsFuture !== bIsFuture) return aIsFuture - bIsFuture;
+
+    if (aIsFuture === 0) {
+      const byRemaining = a.dias_hasta_recordatorio - b.dias_hasta_recordatorio;
+      if (byRemaining !== 0) return byRemaining;
+    }
+
     const byDate = a.fecha_recordatorio.localeCompare(b.fecha_recordatorio);
     if (byDate !== 0) return byDate;
     return String(a.perro_nombre || "").localeCompare(String(b.perro_nombre || ""), "es", { sensitivity: "base" });
@@ -968,10 +1037,15 @@ function renderMaintenanceList(reminders) {
       (item) => `
       <article class="appointment-item">
         <p><strong>Recordar para:</strong> ${formatDate(item.fecha_recordatorio)}</p>
+        <p><strong>Vence:</strong> ${
+          item.dias_hasta_recordatorio >= 0
+            ? `faltan ${escapeHtml(String(item.dias_hasta_recordatorio))} días`
+            : `vencido hace ${escapeHtml(String(Math.abs(item.dias_hasta_recordatorio)))} días`
+        }</p>
         <p><strong>Perrito:</strong> ${escapeHtml(item.perro_nombre)} (${escapeHtml(item.perro_raza || "-")})</p>
         <p><strong>Dueño/a:</strong> ${escapeHtml(item.dueno_nombre || "-")} · ${escapeHtml(item.dueno_telefono || "-")}</p>
         <p><strong>Último servicio:</strong> ${escapeHtml(item.ultimo_servicio || "-")} · ${formatDate(item.fecha_ultimo_servicio)}</p>
-        <p><strong>Intervalo:</strong> ${escapeHtml(String(item.dias_desde_ultimo_servicio))} días desde la última atención</p>
+        <p><strong>Intervalo:</strong> ${escapeHtml(String(item.dias_desde_ultimo_servicio))} días desde la última atención (aviso 3 días antes de los 15)</p>
       </article>
     `
     )
@@ -1207,7 +1281,6 @@ form.addEventListener("submit", async (event) => {
   try {
     await createDog();
     form.reset();
-    fotoCamaraInput.value = "";
     fechaServicioInput.value = todayIsoDate();
     await renderDogs();
     await renderDogsCount();
@@ -1256,16 +1329,25 @@ appointmentForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  const phone = normalizePhone(turnoTelefonoInput.value);
-  if (!phone) {
-    alert("Ingresá el teléfono del dueño.");
+  let dogId = Number(turnoDogIdInput.value);
+  let phone = normalizePhone(turnoTelefonoInput.value);
+
+  if (!phone && dogId) {
+    const selectedDog = getCachedDogs().find((dog) => Number(dog.id) === Number(dogId));
+    if (selectedDog) {
+      phone = normalizePhone(selectedDog.dueno_telefono || "");
+      turnoTelefonoInput.value = phone;
+    }
+  }
+
+  if (!phone && !dogId) {
+    alert("Ingresá teléfono del dueño para crear nuevo perrito, o seleccioná un perrito existente.");
     return;
   }
 
-  let dogId = Number(turnoDogIdInput.value);
   const isNewDogFlowVisible = !nuevoPerroTurno.classList.contains("hidden");
   if (!dogId && !isNewDogFlowVisible) {
-    alert("Buscá por teléfono y seleccioná un perrito, o completá el alta rápida si no existe.");
+    alert("Buscá y seleccioná un perrito, o completá el alta rápida si no existe.");
     return;
   }
 
@@ -1485,10 +1567,6 @@ appointmentList.addEventListener("click", async (event) => {
 
 buscarPorTelefonoButton.addEventListener("click", () => {
   searchDogsForTurno();
-});
-
-elegirContactoButton.addEventListener("click", () => {
-  pickContactForTurno();
 });
 
 filtroNombreInput.addEventListener("input", () => {

@@ -105,6 +105,30 @@ function ensureAppointmentColumns() {
   });
 }
 
+function ensureDogColumns() {
+  db.all("PRAGMA table_info(dogs)", (error, rows) => {
+    if (error) {
+      console.error("No se pudo verificar el esquema de dogs", error.message);
+      return;
+    }
+
+    const currentColumns = new Set((rows || []).map((column) => column.name));
+    const columnsToEnsure = [{ name: "tamano", sql: "ALTER TABLE dogs ADD COLUMN tamano TEXT" }];
+
+    columnsToEnsure.forEach((column) => {
+      if (currentColumns.has(column.name)) {
+        return;
+      }
+
+      db.run(column.sql, (alterError) => {
+        if (alterError) {
+          console.error(`No se pudo crear columna ${column.name} en dogs`, alterError.message);
+        }
+      });
+    });
+  });
+}
+
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS dogs (
@@ -114,6 +138,7 @@ db.serialize(() => {
       raza TEXT NOT NULL,
       caracter TEXT NOT NULL,
       pelaje TEXT NOT NULL,
+      tamano TEXT,
       dueno_nombre TEXT NOT NULL,
       dueno_telefono TEXT NOT NULL,
       dueno_direccion TEXT,
@@ -153,6 +178,7 @@ db.serialize(() => {
   `);
 
   ensureAppointmentColumns();
+  ensureDogColumns();
 });
 
 const storage = multer.diskStorage({
@@ -327,6 +353,7 @@ app.post("/api/dogs", upload.single("foto"), async (req, res) => {
     raza,
     caracter,
     pelaje,
+    tamano,
     duenoNombre,
     duenoTelefono,
     duenoDireccion,
@@ -343,11 +370,11 @@ app.post("/api/dogs", upload.single("foto"), async (req, res) => {
 
   const sql = `
     INSERT INTO dogs (
-      foto_url, nombre, raza, caracter, pelaje,
+      foto_url, nombre, raza, caracter, pelaje, tamano,
       dueno_nombre, dueno_telefono, dueno_direccion, dueno_notas,
       ultimo_servicio, fecha_ultimo_servicio
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const params = [
@@ -356,6 +383,7 @@ app.post("/api/dogs", upload.single("foto"), async (req, res) => {
     raza,
     caracter,
     pelaje,
+    tamano || "",
     duenoNombre,
     duenoTelefono,
     duenoDireccion || "",

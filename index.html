@@ -68,11 +68,6 @@
         </label>
 
         <label>
-          Sacar foto con cámara
-          <input type="file" id="fotoCamara" accept="image/*" capture="environment" />
-        </label>
-
-        <label>
           Nombre
           <input type="text" id="nombre" required />
         </label>
@@ -90,6 +85,11 @@
         <label>
           Pelaje
           <input type="text" id="pelaje" placeholder="Ej: corto, largo, rizado" required />
+        </label>
+
+        <label>
+          Tamaño del perro
+          <input type="text" id="tamano" placeholder="Ej: chico, mediano, grande" required />
         </label>
 
         <label class="full">
@@ -156,15 +156,21 @@
       <form id="appointmentForm" class="form-grid">
         <label>
           Teléfono del dueño/a
-          <input type="text" id="turnoTelefono" placeholder="Ej: 11..." required />
+          <input type="text" id="turnoTelefono" placeholder="Ej: 11..." />
+        </label>
+
+        <label>
+          Nombre del dueño/a
+          <input type="text" id="turnoDueno" placeholder="Ej: Carla" />
+        </label>
+
+        <label>
+          Nombre del perrito
+          <input type="text" id="turnoPerro" placeholder="Ej: Luna" />
         </label>
 
         <div class="turno-search-action">
-          <button id="buscarPorTelefono" type="button">Buscar perros por teléfono</button>
-        </div>
-
-        <div class="turno-search-action">
-          <button id="elegirContacto" type="button" class="secondary">Elegir contacto</button>
+          <button id="buscarPorTelefono" type="button">Buscar perrito</button>
         </div>
 
         <label class="full" id="turnoDogSelectWrap">
