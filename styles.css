@@ -4,9 +4,9 @@
 
 body {
   margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
-  background: #f3f4f6;
-  color: #121212;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 45%, #fffaf5 100%);
+  color: #3b2a1e;
   position: relative;
   min-height: 100vh;
 }
@@ -17,15 +17,15 @@ body::before {
   inset: 0;
   background-image: url("fondo.png");
   background-repeat: no-repeat;
-  background-position: center;
+  background-position: top center;
   background-size: cover;
-  opacity: 0.35;
+  opacity: 0.16;
   z-index: -1;
 }
 
 .container {
-  width: min(1000px, 92%);
-  margin: 24px auto 40px;
+  width: min(1180px, 94%);
+  margin: 16px auto 32px;
 }
 
 .hidden {
@@ -33,41 +33,74 @@ body::before {
 }
 
 h1 {
-  margin-bottom: 4px;
+  margin: 0;
+  font-size: clamp(21px, 2.8vw, 30px);
+  letter-spacing: 0.2px;
+  line-height: 1.1;
 }
 
 .brand {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #fed7aa;
+  border-radius: 20px;
+  padding: 10px 14px;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 .header-logout {
-  margin-left: auto;
+  grid-column: 3;
+  justify-self: end;
+  align-self: center;
+  position: static;
+  margin-left: 0;
 }
 
 .brand-logo {
-  width: 110px;
-  height: 110px;
+  grid-column: 2;
+  justify-self: center;
+  align-self: center;
+  width: 104px;
+  height: 104px;
   object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(194, 65, 12, 0.25));
+}
+
+.header-logout {
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.brand > div {
+  grid-column: 1;
+  justify-self: start;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
 }
 
 .brand-name {
-  margin: 0;
-  color: #374151;
+  margin: 2px 0 0;
+  color: #9a3412;
   font-weight: 700;
 }
 
 .subtitle {
-  margin-top: 0;
-  color: #4b5563;
+  margin: 8px 0 14px;
+  color: #7c2d12;
 }
 
 .connection-status {
-  margin-top: -6px;
-  margin-bottom: 12px;
+  margin-top: -2px;
+  margin-bottom: 14px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .connection-status.online {
@@ -80,25 +113,28 @@ h1 {
 
 .tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
 }
 
 .tab-button {
-  background: #e5e7eb;
-  color: #1f2937;
-  border: 1px solid #d1d5db;
+  background: #fff7ed;
+  color: #7c2d12;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 700;
 }
 
 .tab-button:hover {
-  background: #d1d5db;
+  background: #ffedd5;
 }
 
 .tab-button.active {
-  background: #f16b23;
+  background: #c2410c;
   color: #ffffff;
-  border-color: #3a230a;
+  border-color: #c2410c;
 }
 
 .tab-button.has-alert,
@@ -110,15 +146,15 @@ h1 {
 }
 
 .tab-help {
-  margin-top: 0;
+  margin-top: -2px;
   margin-bottom: 12px;
-  color: #4b5563;
+  color: #9a3412;
 }
 
 .counter-text {
   margin-top: 0;
   margin-bottom: 12px;
-  color: #374151;
+  color: #7c2d12;
   font-weight: 600;
 }
 
@@ -134,12 +170,13 @@ h1 {
 }
 
 .login-card {
-  width: min(420px, 100%);
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 20px;
+  width: min(460px, 100%);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid #fed7aa;
+  border-radius: 20px;
+  padding: 24px;
   text-align: center;
+  box-shadow: 0 18px 44px rgba(124, 45, 18, 0.2);
 }
 
 .login-card .brand-logo {
@@ -165,17 +202,18 @@ h1 {
 }
 
 .panel {
-  background: white;
-  border-radius: 10px;
-  padding: 16px;
+  background: rgba(255, 255, 255, 0.86);
+  border-radius: 18px;
+  padding: 18px;
   margin-bottom: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #fed7aa;
+  box-shadow: 0 10px 30px rgba(124, 45, 18, 0.1);
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 14px;
 }
 
 label {
@@ -183,6 +221,8 @@ label {
   flex-direction: column;
   gap: 6px;
   font-size: 14px;
+  color: #7c2d12;
+  font-weight: 600;
 }
 
 .full {
@@ -194,65 +234,87 @@ select,
 textarea,
 button {
   font: inherit;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
+  padding: 11px;
+  border-radius: 12px;
+  border: 1px solid #fdba74;
+}
+
+input,
+select,
+textarea {
+  background: #fffdf9;
+  color: #3b2a1e;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.16);
 }
 
 button {
   border: none;
-  background: #ee986a;
+  background: linear-gradient(180deg, #ea580c 0%, #c2410c 100%);
   color: #fff;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
+  transition: transform 0.12s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 button:hover {
-  background: #d8621d;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(154, 52, 18, 0.28);
 }
 
 button.secondary {
-  background: #6b7280;
+  background: #9a3412;
 }
 
 button.secondary:hover {
-  background: #4b5563;
+  background: #7c2d12;
 }
 
 .cards {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .dog-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 14px;
 }
 
 .dog-summary-card {
   display: grid;
-  grid-template-columns: 72px 1fr;
-  gap: 10px;
+  grid-template-columns: 86px 1fr;
+  gap: 12px;
   width: 100%;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #fafafa;
-  padding: 10px;
+  border: 1px solid #fdba74;
+  border-radius: 14px;
+  background: #fffaf4;
+  padding: 12px;
   text-align: left;
 }
 
+.dog-summary-card:hover {
+  border-color: #ea580c;
+  box-shadow: 0 8px 22px rgba(234, 88, 12, 0.18);
+}
+
 .dog-summary-card img {
-  width: 72px;
-  height: 72px;
-  border-radius: 8px;
+  width: 86px;
+  height: 86px;
+  border-radius: 12px;
   object-fit: cover;
-  border: 1px solid #d1d5db;
+  border: 1px solid #fdba74;
 }
 
 .dog-summary-card p {
   margin: 2px 0;
-  color: #374151;
+  color: #7c2d12;
 }
 
 .dog-detail-title {
@@ -261,8 +323,8 @@ button.secondary:hover {
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 14px;
   margin-bottom: 12px;
 }
 
@@ -279,10 +341,10 @@ button.secondary:hover {
 }
 
 .turno-nuevo-perro {
-  border: 1px dashed #d1d5db;
-  border-radius: 10px;
+  border: 1px dashed #ea580c;
+  border-radius: 14px;
   padding: 12px;
-  background: #f9fafb;
+  background: #fff7ed;
 }
 
 .turno-nuevo-perro h3 {
@@ -292,25 +354,26 @@ button.secondary:hover {
 }
 
 .card {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border: 1px solid #fdba74;
+  border-radius: 14px;
   padding: 12px;
   display: grid;
   grid-template-columns: 110px 1fr;
   gap: 12px;
-  background: #fafafa;
+  background: #fffaf4;
 }
 
 .card img {
   width: 110px;
   height: 110px;
   object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  border: 1px solid #fdba74;
 }
 
 .info p {
   margin: 4px 0;
+  color: #7c2d12;
 }
 
 .actions {
@@ -325,19 +388,20 @@ button.secondary:hover {
 }
 
 .empty {
-  color: #6b7280;
+  color: #9a3412;
   font-style: italic;
 }
 
 .appointment-item {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border: 1px solid #fdba74;
+  border-radius: 14px;
   padding: 12px;
-  background: #fafafa;
+  background: #fffaf4;
 }
 
 .appointment-item p {
   margin: 4px 0;
+  color: #7c2d12;
 }
 
 .pending-badge {
@@ -345,16 +409,36 @@ button.secondary:hover {
   margin-left: 6px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #f59e0b;
-  color: #111827;
+  background: #f97316;
+  color: #fff;
   font-size: 12px;
   font-weight: 700;
 }
 
 @media (max-width: 640px) {
   .brand-logo {
-    width: 84px;
-    height: 84px;
+    width: 78px;
+    height: 78px;
+  }
+
+  .brand {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    border-radius: 14px;
+    justify-items: center;
+  }
+
+  .brand > div,
+  .brand-logo,
+  .header-logout {
+    grid-column: 1;
+    justify-self: center;
+    text-align: center;
+  }
+
+  .header-logout {
+    position: static;
+    width: 100%;
   }
 
   .card {

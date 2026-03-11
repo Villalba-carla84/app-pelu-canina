@@ -12,7 +12,20 @@ const AUTH_USER = process.env.APP_USER || "admin";
 const AUTH_PASS = process.env.APP_PASS || "narices2026";
 const activeTokens = new Map();
 
-const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : __dirname;
+function resolveDataDir() {
+  if (process.env.DATA_DIR) {
+    return path.resolve(process.env.DATA_DIR);
+  }
+
+  const renderPersistentRoot = "/var/data";
+  if (fs.existsSync(renderPersistentRoot)) {
+    return path.join(renderPersistentRoot, "narices-frias");
+  }
+
+  return __dirname;
+}
+
+const dataDir = resolveDataDir();
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
@@ -238,13 +251,16 @@ app.get("/api/dogs/by-phone/:phone", async (req, res) => {
   }
 
   try {
+    const normalizedColumn = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(dueno_telefono, ' ', ''), '-', ''), '+', ''), '(', ''), ')', '')";
     const rows = await allQuery(
       `
         SELECT * FROM dogs
-        WHERE REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(dueno_telefono, ' ', ''), '-', ''), '+', ''), '(', ''), ')', '') = ?
+        WHERE ${normalizedColumn} = ?
+           OR ${normalizedColumn} LIKE ?
+           OR ? LIKE '%' || ${normalizedColumn}
         ORDER BY nombre ASC
       `,
-      [normalizedPhone]
+      [normalizedPhone, `%${normalizedPhone}`, normalizedPhone]
     );
     return res.json(rows);
   } catch {

@@ -174,6 +174,23 @@ function setCachedDogs(dogs) {
   writeJsonStorage(DOGS_CACHE_KEY, dogs);
 }
 
+function upsertCachedDog(dog) {
+  if (!dog || !dog.id) return;
+  const dogs = getCachedDogs();
+  const index = dogs.findIndex((item) => Number(item.id) === Number(dog.id));
+  if (index >= 0) {
+    dogs[index] = { ...dogs[index], ...dog };
+  } else {
+    dogs.push(dog);
+  }
+  setCachedDogs(dogs);
+}
+
+function removeCachedDogById(dogId) {
+  const dogs = getCachedDogs().filter((item) => Number(item.id) !== Number(dogId));
+  setCachedDogs(dogs);
+}
+
 function getCachedAppointmentsByDate() {
   return readJsonStorage(APPOINTMENTS_CACHE_KEY, {});
 }
@@ -206,9 +223,11 @@ function removePendingAppointmentById(pendingId) {
 function toggleNewDogForm(visible) {
   if (visible) {
     nuevoPerroTurno.classList.remove("hidden");
+    turnoDogIdInput.required = false;
     return;
   }
   nuevoPerroTurno.classList.add("hidden");
+  turnoDogIdInput.required = true;
 }
 
 function showLoginError(message = "") {
@@ -380,7 +399,14 @@ async function fetchDogsByPhone(phone) {
     return dogs;
   } catch (error) {
     const normalizedPhone = normalizePhone(phone);
-    const cached = getCachedDogs().filter((dog) => normalizePhone(dog.dueno_telefono || "") === normalizedPhone);
+    const cached = getCachedDogs().filter((dog) => {
+      const normalizedDogPhone = normalizePhone(dog.dueno_telefono || "");
+      return (
+        normalizedDogPhone === normalizedPhone ||
+        normalizedDogPhone.endsWith(normalizedPhone) ||
+        normalizedPhone.endsWith(normalizedDogPhone)
+      );
+    });
     if (!cached.length) {
       throw error;
     }
@@ -432,7 +458,9 @@ async function createDogFromPayload(payload) {
     throw new Error(await getApiErrorMessage(response, "No se pudo guardar el perrito"));
   }
 
-  return response.json();
+  const createdDog = await response.json();
+  upsertCachedDog(createdDog);
+  return createdDog;
 }
 
 async function createDog() {
@@ -499,6 +527,7 @@ async function deleteDog(dogId) {
   if (!response.ok) {
     throw new Error(await getApiErrorMessage(response, "No se pudo eliminar el perrito"));
   }
+  removeCachedDogById(dogId);
 }
 
 async function createAppointment(payload) {
@@ -1234,6 +1263,12 @@ appointmentForm.addEventListener("submit", async (event) => {
   }
 
   let dogId = Number(turnoDogIdInput.value);
+  const isNewDogFlowVisible = !nuevoPerroTurno.classList.contains("hidden");
+  if (!dogId && !isNewDogFlowVisible) {
+    alert("Buscá por teléfono y seleccioná un perrito, o completá el alta rápida si no existe.");
+    return;
+  }
+
   const payload = {
     dogId,
     fechaTurno: turnoFechaInput.value,
